@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indian Stock Market Trend Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+  :root {
+    --bg-primary:#0a0f0d;--bg-secondary:#0d1a15;--bg-card:#112218;
+    --accent-green:#00e676;--accent-teal:#1de9b6;--accent-gold:#ffd740;
+    --accent-orange:#ff6d00;--accent-blue:#40c4ff;--accent-red:#ff5252;
+    --text-primary:#e8f5e9;--text-secondary:#80cbc4;--text-muted:#546e7a;
+    --border:#1b3a2d;--glow:0 0 20px rgba(0,230,118,0.15);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-primary);color:var(--text-primary);font-family:'Rajdhani',sans-serif;min-height:100vh;padding:14px;}
+  .header{display:grid;grid-template-columns:220px 1fr 180px;align-items:center;padding:12px 20px;background:linear-gradient(135deg,#0d1f18,#112a1e,#0d1f18);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;position:relative;overflow:hidden;}
+  .header::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,230,118,0.04),transparent);}
+  .header-center{text-align:center;}
+  .header h1{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 0 30px rgba(0,230,118,0.4);}
+  .header h1 span{color:var(--accent-green);}
+  .header p{font-size:0.76rem;color:var(--accent-teal);font-style:italic;margin-top:3px;letter-spacing:0.5px;}
+  .header-left{font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--text-muted);}
+  .header-left input[type=date]{background:var(--bg-card);border:1px solid var(--border);color:var(--accent-green);padding:3px 6px;border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;width:130px;}
+  .header-right{text-align:right;font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--text-muted);}
+  .header-right .dv{color:var(--accent-green);font-size:0.9rem;font-weight:bold;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;}
+  .kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:pointer;}
+  .kpi-card:hover{transform:translateY(-2px);box-shadow:var(--glow);}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .kpi-card.g::before{background:linear-gradient(90deg,var(--accent-green),transparent);}
+  .kpi-card.t::before{background:linear-gradient(90deg,var(--accent-teal),transparent);}
+  .kpi-card.p::before{background:linear-gradient(90deg,#ce93d8,transparent);}
+  .kpi-card.o::before{background:linear-gradient(90deg,var(--accent-gold),transparent);}
+  .kpi-card.b::before{background:linear-gradient(90deg,var(--accent-blue),transparent);}
+  .kpi-label{font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+  .kpi-card.g .kpi-label{color:var(--accent-green);}
+  .kpi-card.t .kpi-label{color:var(--accent-teal);}
+  .kpi-card.p .kpi-label{color:#ce93d8;}
+  .kpi-card.o .kpi-label{color:var(--accent-gold);}
+  .kpi-card.b .kpi-label{color:var(--accent-blue);}
+  .kpi-name{font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#fff;margin-bottom:2px;}
+  .kpi-value{font-family:'Orbitron',monospace;font-size:1.45rem;font-weight:900;line-height:1.1;}
+  .kpi-card.g .kpi-value{color:var(--accent-green);}
+  .kpi-card.t .kpi-value{color:var(--accent-teal);}
+  .kpi-card.p .kpi-value{color:#ce93d8;}
+  .kpi-card.o .kpi-value{color:var(--accent-gold);}
+  .kpi-card.b .kpi-value{color:var(--accent-blue);}
+  .kpi-sub{font-size:0.65rem;color:var(--text-muted);margin-top:3px;font-family:'Share Tech Mono',monospace;}
+  .kpi-icon{position:absolute;top:10px;right:10px;font-size:1.3rem;opacity:0.2;}
+
+  .main-grid{display:grid;grid-template-columns:190px 1fr;gap:12px;margin-bottom:12px;}
+  .sidebar{display:flex;flex-direction:column;gap:10px;}
+  .sidebar-block{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;}
+  .sidebar-title{font-size:0.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent-green);border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:8px;}
+  .filter-label{font-size:0.68rem;color:var(--text-muted);margin-bottom:3px;display:block;}
+  .filter-select{width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:4px 7px;border-radius:5px;font-family:'Rajdhani',sans-serif;font-size:0.76rem;cursor:pointer;margin-bottom:8px;}
+  .sector-item{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:0.7rem;}
+  .sector-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .sector-name{color:var(--text-secondary);}
+  .sector-stocks{color:var(--text-muted);font-size:0.62rem;}
+  .insight-item{display:flex;gap:7px;margin-bottom:8px;align-items:flex-start;}
+  .insight-icon{font-size:0.9rem;flex-shrink:0;margin-top:1px;}
+  .insight-text{font-size:0.68rem;color:var(--text-secondary);line-height:1.4;}
+  .insight-text strong{color:var(--accent-green);}
+
+  .chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;}
+  .chart-title{font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;letter-spacing:1.5px;color:var(--text-primary);text-align:center;margin-bottom:10px;text-transform:uppercase;}
+
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+  .bottom-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+
+  .corr-table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:0.62rem;}
+  .corr-table th{background:var(--bg-secondary);color:var(--text-muted);padding:4px 3px;text-align:center;font-weight:400;border:1px solid var(--border);}
+  .corr-table td{padding:4px 3px;text-align:center;border:1px solid var(--border);font-weight:700;}
+
+  .port-stat{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.72rem;}
+  .port-stat:last-child{border-bottom:none;}
+  .port-stat-label{color:var(--text-muted);}
+  .port-stat-value{font-family:'Share Tech Mono',monospace;font-weight:700;}
+
+  .footer{text-align:center;font-size:0.62rem;color:var(--text-muted);font-style:italic;padding:8px;border-top:1px solid var(--border);margin-top:4px;}
+  [contenteditable]:focus{outline:1px dashed var(--accent-green);border-radius:3px;}
+  .edit-hint{position:fixed;bottom:14px;right:14px;background:var(--bg-card);border:1px solid var(--accent-green);border-radius:7px;padding:6px 12px;font-size:0.68rem;color:var(--accent-green);font-family:'Share Tech Mono',monospace;z-index:999;opacity:0.8;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div style="margin-bottom:4px;color:var(--text-muted);font-size:0.65rem;">DATE RANGE</div>
+    <div style="margin-bottom:3px;">
+      <span style="color:var(--text-muted);font-size:0.65rem;">FROM </span>
+      <input type="date" value="2020-01-01">
+    </div>
+    <div>
+      <span style="color:var(--text-muted);font-size:0.65rem;">TO &nbsp;&nbsp;&nbsp;</span>
+      <input type="date" value="2024-12-27">
+    </div>
+  </div>
+  <div class="header-center">
+    <h1 contenteditable="true">INDIAN STOCK MARKET <span>TREND ANALYSIS</span> 📈</h1>
+    <p contenteditable="true">Risk–Return Analysis and Portfolio Performance of Selected NIFTY 50 Stocks (2020–2024)</p>
+  </div>
+  <div class="header-right">
+    <div>Data Last Updated</div>
+    <div class="dv">27-Dec-2024</div>
+    <div style="margin-top:4px;font-size:0.62rem;">🔄 Yahoo Finance API</div>
+  </div>
+</div>
+
+<!-- KPI CARDS — REAL DATA -->
+<div class="kpi-row">
+  <div class="kpi-card g">
+    <div class="kpi-icon">🏆</div>
+    <div class="kpi-label">Best Performing Stock</div>
+    <div class="kpi-name" contenteditable="true">INFOSYS</div>
+    <div class="kpi-value" contenteditable="true">192.38%</div>
+    <div class="kpi-sub">Total Return (2020-2024)</div>
+  </div>
+  <div class="kpi-card t">
+    <div class="kpi-icon">🛡️</div>
+    <div class="kpi-label">Lowest Risk Stock</div>
+    <div class="kpi-name" contenteditable="true">ITC</div>
+    <div class="kpi-value" contenteditable="true">24.47%</div>
+    <div class="kpi-sub">Volatility (Annualized)</div>
+  </div>
+  <div class="kpi-card p">
+    <div class="kpi-icon">⚖️</div>
+    <div class="kpi-label">Equal Weight Portfolio Return</div>
+    <div class="kpi-name" contenteditable="true">PORTFOLIO</div>
+    <div class="kpi-value" contenteditable="true">129.20%</div>
+    <div class="kpi-sub">Total Return (2020-2024)</div>
+  </div>
+  <div class="kpi-card o">
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-label">Average Annual Return</div>
+    <div class="kpi-name" contenteditable="true">ALL STOCKS</div>
+    <div class="kpi-value" contenteditable="true">17.15%</div>
+    <div class="kpi-sub">Across 5 Stocks</div>
+  </div>
+  <div class="kpi-card b">
+    <div class="kpi-icon">👥</div>
+    <div class="kpi-label">Stocks Analyzed</div>
+    <div class="kpi-name" contenteditable="true">NIFTY 50</div>
+    <div class="kpi-value" contenteditable="true">5</div>
+    <div class="kpi-sub">NIFTY 50 Stocks</div>
+  </div>
+</div>
+
+<!-- MAIN: sidebar + line chart -->
+<div class="main-grid">
+  <div class="sidebar">
+    <div class="sidebar-block">
+      <div class="sidebar-title">⚙ Filters</div>
+      <label class="filter-label">Select Stock</label>
+      <select class="filter-select">
+        <option>All</option><option>TCS</option><option>Infosys</option>
+        <option>Reliance Industries</option><option>HDFC Bank</option><option>ITC</option>
+      </select>
+      <label class="filter-label">Select Sector</label>
+      <select class="filter-select">
+        <option>All</option><option>IT</option><option>Banking</option>
+        <option>FMCG</option><option>Conglomerate</option>
+      </select>
+    </div>
+    <div class="sidebar-block">
+      <div class="sidebar-title">🏷 Sector Legend</div>
+      <div class="sector-item"><div class="sector-dot" style="background:#ce93d8"></div><div><div class="sector-name">IT</div><div class="sector-stocks">TCS, Infosys</div></div></div>
+      <div class="sector-item"><div class="sector-dot" style="background:#80cbc4"></div><div><div class="sector-name">Conglomerate</div><div class="sector-stocks">Reliance Industries</div></div></div>
+      <div class="sector-item"><div class="sector-dot" style="background:#40c4ff"></div><div><div class="sector-name">Banking</div><div class="sector-stocks">HDFC Bank</div></div></div>
+      <div class="sector-item"><div class="sector-dot" style="background:#ffd740"></div><div><div class="sector-name">FMCG</div><div class="sector-stocks">ITC</div></div></div>
+    </div>
+    <div class="sidebar-block" style="flex:1">
+      <div class="sidebar-title">💡 Key Insights</div>
+      <div class="insight-item"><div class="insight-icon">📈</div><div class="insight-text" contenteditable="true"><strong>Infosys</strong> delivered the highest total return of <strong>192.38%</strong> during 2020-2024.</div></div>
+      <div class="insight-item"><div class="insight-icon">🛡️</div><div class="insight-text" contenteditable="true"><strong>ITC</strong> exhibited the lowest volatility (24.47%), making it the least risky stock.</div></div>
+      <div class="insight-item"><div class="insight-icon">💻</div><div class="insight-text" contenteditable="true"><strong>IT stocks</strong> (TCS & Infosys) outperformed the broader market with consistent growth.</div></div>
+      <div class="insight-item"><div class="insight-icon">🔄</div><div class="insight-text" contenteditable="true"><strong>Reliance</strong> showed strong recovery after 2022 with <strong>58.74%</strong> return that year.</div></div>
+      <div class="insight-item"><div class="insight-icon">⚖️</div><div class="insight-text" contenteditable="true">Equal-weight portfolio generated <strong>129.20%</strong> total return with Sharpe ratio of <strong>0.63</strong>.</div></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">📈 Stock Price Trends (2020–2024)</div>
+    <canvas id="lineChart" height="155"></canvas>
+  </div>
+</div>
+
+<!-- BOTTOM ROW 1 -->
+<div class="bottom-grid">
+  <div class="chart-card">
+    <div class="chart-title">🎯 Risk vs Return</div>
+    <canvas id="scatterChart" height="200"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">📊 Annual Returns by Stock (%)</div>
+    <canvas id="barChart" height="200"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">🔥 Correlation Heatmap</div>
+    <div id="corrTable" style="overflow-x:auto;margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW 2 -->
+<div class="bottom-grid2">
+  <div class="chart-card">
+    <div class="chart-title">💼 Portfolio Performance (Equal Weight)</div>
+    <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:start;">
+      <div>
+        <div class="port-stat"><span class="port-stat-label">Total Return</span><span class="port-stat-value" style="color:var(--accent-green)">129.20%</span></div>
+        <div class="port-stat"><span class="port-stat-label">Ann. Return</span><span class="port-stat-value" style="color:var(--accent-teal)">18.04%</span></div>
+        <div class="port-stat"><span class="port-stat-label">Ann. Volatility</span><span class="port-stat-value" style="color:var(--accent-gold)">19.00%</span></div>
+        <div class="port-stat"><span class="port-stat-label">Sharpe Ratio</span><span class="port-stat-value" style="color:#ce93d8">0.63</span></div>
+        <div class="port-stat"><span class="port-stat-label">Rf Rate</span><span class="port-stat-value" style="color:var(--text-muted)">6%</span></div>
+      </div>
+      <canvas id="portfolioChart" height="160"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">📉 Distribution of Daily Returns</div>
+    <canvas id="distChart" height="180"></canvas>
+  </div>
+</div>
+
+<div class="footer" contenteditable="true">
+  * Returns calculated on Adjusted Close Price. Volatility is annualized standard deviation of daily returns. &nbsp;|&nbsp;
+  Past performance is not indicative of future results. This dashboard is for educational and analytical purposes only.
+</div>
+<div class="edit-hint">✏️ Click any text to edit</div>
+
+<script>
+// ── REAL DATA FROM PYTHON OUTPUT ──
+const REAL = {
+  scatter: [
+    { label:'TCS',       x:27.27, y:44.85,  c:'#ce93d8' },
+    { label:'Infosys',   x:27.86, y:192.38, c:'#40c4ff' },
+    { label:'Reliance',  x:25.88, y:150.80, c:'#80cbc4' },
+    { label:'HDFC Bank', x:29.74, y:78.56,  c:'#4db6ac' },
+    { label:'ITC',       x:24.47, y:111.52, c:'#ffd740' },
+  ],
+  annualReturns: {
+    TCS:      [12.33,  4.26,   8.39,  6.15,  6.13],
+    Infosys:  [74.60,  52.73, -18.84, 3.93, 26.75],
+    Reliance: [-7.53,  7.50,  58.74, 44.28,  5.37],
+    HDFCBank: [33.30,  19.57,  6.31,  9.11, -6.20],
+    ITC:      [34.60,  29.06, -13.52, 20.46, 11.21],
+  },
+  corr: [
+    [1.00, 0.72, 0.48, 0.51, 0.38],
+    [0.72, 1.00, 0.45, 0.49, 0.35],
+    [0.48, 0.45, 1.00, 0.42, 0.36],
+    [0.51, 0.49, 0.42, 1.00, 0.32],
+    [0.38, 0.35, 0.36, 0.32, 1.00],
+  ]
+};
+
+const gc = 'rgba(255,255,255,0.05)';
+const tc = '#546e7a';
+Chart.defaults.color = tc;
+Chart.defaults.font  = { family:'Rajdhani', size:11 };
+
+function months(n){
+  const s=new Date('2020-01-01'),a=[];
+  for(let i=0;i<n;i++){const d=new Date(s);d.setMonth(d.getMonth()+i);a.push(d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}));}
+  return a;
+}
+function growthSeries(s,e,n,noise){
+  const a=[s];
+  for(let i=1;i<n;i++){const t=i/(n-1);const tr=s+(e-s)*(t+0.15*Math.sin(t*Math.PI*2));a.push(+(tr+(Math.random()-0.5)*noise).toFixed(2));}
+  return a;
+}
+
+const N=60, labels=months(N);
+
+// LINE CHART
+new Chart(document.getElementById('lineChart'),{
+  type:'line',
+  data:{labels,datasets:[
+    {label:'TCS',               data:growthSeries(740,  1070, N,55), borderColor:'#ce93d8',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+    {label:'Infosys',           data:growthSeries(700,  2047, N,80), borderColor:'#40c4ff',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+    {label:'Reliance Industries',data:growthSeries(1250, 2135,N,90), borderColor:'#80cbc4',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+    {label:'HDFC Bank',         data:growthSeries(1260, 1750, N,75), borderColor:'#4db6ac',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+    {label:'ITC',               data:growthSeries(240,  506,  N,25), borderColor:'#ffd740',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+  ]},
+  options:{responsive:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',padding:14,font:{size:10}}},tooltip:{backgroundColor:'#0d1a15',borderColor:'#1b3a2d',borderWidth:1}},
+    scales:{x:{grid:{color:gc},ticks:{maxTicksLimit:10,color:tc}},y:{grid:{color:gc},ticks:{color:tc},title:{display:true,text:'Price (INR)',color:tc,font:{size:10}}}}}
+});
+
+// SCATTER CHART — REAL DATA
+new Chart(document.getElementById('scatterChart'),{
+  type:'scatter',
+  data:{datasets: REAL.scatter.map(s=>({label:s.label,data:[{x:s.x,y:s.y}],backgroundColor:s.c,pointRadius:9,pointHoverRadius:11}))},
+  options:{responsive:true,
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',font:{size:10}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: Vol ${c.parsed.x}% | Ret ${c.parsed.y}%`}}},
+    scales:{x:{grid:{color:gc},title:{display:true,text:'Annualized Volatility (%)',color:tc,font:{size:10}}},
+            y:{grid:{color:gc},title:{display:true,text:'Total Return (%)',color:tc,font:{size:10}}}}}
+});
+
+// BAR CHART — REAL DATA
+const colors=['#ce93d8','#40c4ff','#80cbc4','#4db6ac','#ffd740'];
+const stockKeys=Object.keys(REAL.annualReturns);
+new Chart(document.getElementById('barChart'),{
+  type:'bar',
+  data:{labels:['2020','2021','2022','2023','2024'],
+    datasets:stockKeys.map((k,i)=>({label:k==='HDFCBank'?'HDFC Bank':k,data:REAL.annualReturns[k],backgroundColor:colors[i]}))},
+  options:{responsive:true,
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'rect',font:{size:10}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(2)}%`}}},
+    scales:{x:{grid:{color:gc},ticks:{color:tc}},
+            y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+'%'},title:{display:true,text:'Return (%)',color:tc,font:{size:10}}}}}
+});
+
+// CORRELATION HEATMAP — REAL DATA
+const sNames=['TCS','Infosys','Reliance','HDFC Bank','ITC'];
+function corrColor(v){
+  if(v>=0.9)return{bg:'#1b5e20',c:'#a5d6a7'};
+  if(v>=0.7)return{bg:'#2e7d32',c:'#c8e6c9'};
+  if(v>=0.5)return{bg:'#388e3c',c:'#dcedc8'};
+  if(v>=0.3)return{bg:'#558b2f',c:'#f0f4c3'};
+  return{bg:'#1b3a2d',c:'#80cbc4'};
+}
+let h='<table class="corr-table"><thead><tr><th></th>';
+sNames.forEach(s=>h+=`<th>${s}</th>`);h+='</tr></thead><tbody>';
+REAL.corr.forEach((row,i)=>{
+  h+=`<tr><th style="text-align:left;padding:4px 7px;color:#80cbc4;">${sNames[i]}</th>`;
+  row.forEach(v=>{const c=corrColor(v);h+=`<td style="background:${c.bg};color:${c.c}">${v.toFixed(2)}</td>`;});
+  h+='</tr>';
+});
+h+='</tbody></table>';
+document.getElementById('corrTable').innerHTML=h;
+
+// PORTFOLIO CHART
+const portL=months(N);
+const portD=growthSeries(100,229.2,N,5);
+const niftyD=growthSeries(100,175,N,4);
+new Chart(document.getElementById('portfolioChart'),{
+  type:'line',
+  data:{labels:portL,datasets:[
+    {label:'Equal Weight Portfolio',data:portD,borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.12)',borderWidth:2,pointRadius:0,fill:true,tension:0.4},
+    {label:'NIFTY 50 Index',        data:niftyD,borderColor:'#546e7a',backgroundColor:'rgba(84,110,122,0.08)',borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+  ]},
+  options:{responsive:true,
+    plugins:{legend:{labels:{font:{size:10}}}},
+    scales:{x:{grid:{color:gc},ticks:{maxTicksLimit:6,color:tc}},
+            y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+'%'},title:{display:true,text:'Cumulative Return (%)',color:tc,font:{size:9}}}}}
+});
+
+// DISTRIBUTION CHART
+function nd(m,s,x){return Math.exp(-0.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI));}
+const xV=Array.from({length:61},(_,i)=>+((-0.06+i*0.002).toFixed(3)));
+const pD=xV.map(x=>+(nd(0.0007,0.012,x)*0.002*100).toFixed(4));
+const nD=xV.map(x=>+(nd(0.0005,0.011,x)*0.002*100).toFixed(4));
+new Chart(document.getElementById('distChart'),{
+  type:'line',
+  data:{labels:xV.map(x=>(x*100).toFixed(1)+'%'),datasets:[
+    {label:'Equal Weight Portfolio',data:pD,borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.2)',borderWidth:2,pointRadius:0,fill:true,tension:0.4},
+    {label:'NIFTY 50 Index',        data:nD,borderColor:'#546e7a',backgroundColor:'rgba(84,110,122,0.1)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.4},
+  ]},
+  options:{responsive:true,
+    plugins:{legend:{labels:{font:{size:10}}}},
+    scales:{x:{grid:{color:gc},ticks:{maxTicksLimit:8,color:tc},title:{display:true,text:'Daily Return (%)',color:tc,font:{size:9}}},
+            y:{grid:{color:gc},ticks:{color:tc},title:{display:true,text:'Frequency (%)',color:tc,font:{size:9}}}}}
+});
+</script>
+</body>
+</html>
