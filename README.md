@@ -39,7 +39,7 @@ The project covers the complete data analytics lifecycle:
 ![Dashboard](screenshots/stock_dashbaord.png)
 
 ### 📊 Power BI Dashboard
-![Power BI](screenshots/base%20model%20pbipbi.png)
+![Power BI](screenshots/powerbi_dashboard.png)
 
 ---
 
